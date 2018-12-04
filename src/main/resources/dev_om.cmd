@@ -52,7 +52,7 @@ add-permission {"perm_name":"perm_workflow_edit","resource":"workflow","scopes":
 add-permission {"perm_name":"perm_workflow_create","resource":"workflow","scopes":["create"],"policies":["policy_manager_role"],"policy_strategy":"affirmative"}
 # "report" permissions
 add-permission {"perm_name":"perm_report_view","resource":"report","scopes":["view"],"policies":["policy_any_role"],"policy_strategy":"affirmative"}
-add-permission {"perm_name":"perm_report_export","resource":"report","scopes":["create",""export"],"policies":["policy_msa_role","policy_auditors_role"],"policy_strategy":"affirmative"}
+add-permission {"perm_name":"perm_report_export","resource":"report","scopes":["create","export"],"policies":["policy_msa_role","policy_auditors_role"],"policy_strategy":"affirmative"}
 add-permission {"perm_name":"perm_report_edit","resource":"report","scopes":["edit"],"policies":["policy_support_role"],"policy_strategy":"affirmative"}
 # "user" permissions
 add-permission {"perm_name":"perm_user_export","resource":"user","scopes":["view"],"policies":["policy_any_role"],"policy_strategy":"affirmative"}

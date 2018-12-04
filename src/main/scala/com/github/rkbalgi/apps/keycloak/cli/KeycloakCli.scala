@@ -1,4 +1,4 @@
-package com.github.rkbalgi.apps.keycloak.ui
+package com.github.rkbalgi.apps.keycloak.cli
 
 
 import com.github.rkbalgi.apps.keycloak.rest.RestLoggingFilter
@@ -92,6 +92,12 @@ object KeycloakCli extends App {
       val commandName = cmd.substring(0, cmd.indexOf(" ")) //first space ends the command name and the command itself
       val command = cmd.substring(cmd.indexOf(" ") + 1)
       commandName match {
+        case "add-role-based-policy" =>{
+          KeycloakHelperFunctions.addRoleBasedPolicy(adminClient,command);
+        }
+        case "add-role" =>{
+          KeycloakHelperFunctions.addRole(realmResource,command);
+        }
         case "add-resource" => {
           KeycloakHelperFunctions.createResource(authzClient, command)
         }
