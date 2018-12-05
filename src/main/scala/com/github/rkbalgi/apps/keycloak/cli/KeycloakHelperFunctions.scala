@@ -42,7 +42,10 @@ object KeycloakHelperFunctions {
     val resourceName = (jsonObj \ "resource_name").get.as[String]
     val scopes = (jsonObj \ "scopes").get.as[JsArray]
     assert(scopes.value.length > 0, "1 or more scopes should be provided with add-scopes command")
-    log.debug(s"Adding resource - ${resourceName}  with scopes - ${scopes.value.mkString("[", ",", "]")}")
+    log.debug(s"Adding resource - ${resourceName}  with scopes - ${
+      scopes.value.mkString("[", "," +
+        "", "]")
+    }")
 
     val resource = Option(authzClient.protection().resource().findByName(resourceName))
 
@@ -84,7 +87,8 @@ object KeycloakHelperFunctions {
     //set scopes
     for (scope <- scopes.value) newScopePerm.addScope(scope.as[String])
 
-    newScopePerm.setDecisionStrategy(DecisionStrategy.valueOf(policyStrategy.get.as[String].toUpperCase))
+    newScopePerm.setDecisionStrategy(DecisionStrategy.valueOf(policyStrategy.get.as[String]
+      .toUpperCase))
     newScopePerm.setLogic(Logic.POSITIVE)
     newScopePerm.addResource(resource)
 
@@ -163,7 +167,8 @@ object KeycloakHelperFunctions {
   }
 
 
-  /** Deletes permissions from keycloak. If the command (JSON) contains a array property "name" with the first value "*"
+  /** Deletes permissions from keycloak. If the command (JSON) contains a array property "name"
+    * with the first value "*"
     * then all permissions are deleted!!, else all the listed permissions are deleted
     *
     * */
@@ -174,7 +179,8 @@ object KeycloakHelperFunctions {
   }
 
   /**
-    * Deletes policies from keycloak - See behaviour here - [[KeycloakHelperFunctions.deletePermissions()]]
+    * Deletes policies from keycloak - See behaviour here - [[KeycloakHelperFunctions
+    * .deletePermissions()]]
     *
     * @param adminClient
     * @param command

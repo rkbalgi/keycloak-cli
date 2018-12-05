@@ -7,11 +7,13 @@ authServerUrl=http://localhost:8080/auth
 clientName=identiti-app
 secret=71df4a13-7f58-45be-9f8a-9abac88f97fe
 realm=infinx-demo
+admin_user=admin_user
+password=password
 ###################################
 delete-permissions ["*"]
 delete-policies ["*"]
 delete-resources ["*"]
-delete-roles ["*","role_admin"]
+delete-roles ["*"]
 ###################################
 #
 # Add roles

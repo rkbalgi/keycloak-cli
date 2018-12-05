@@ -20,7 +20,8 @@ object DeleteHelper {
   def deleteRoles(adminClient: RealmResource, command: String) = {
 
     val toDelete = Json.fromJson[Array[String]](Json.parse(command))
-    val notDefaultRole: Predicate[_ >: RoleRepresentation] = r => !r.getName.equals("uma_authorization") && !r.getName.equals("offline_access")
+    val notDefaultRole: Predicate[_ >: RoleRepresentation] = r => (!r.getName.equals
+    ("uma_authorization") && !r.getName.equals("offline_access"))
 
     if (toDelete.isSuccess) {
       if (toDelete.get(0).equals("*")) {
@@ -85,7 +86,8 @@ object DeleteHelper {
         try {
           adminClient.authorization().permissions().scope().findById(p.getId).remove()
         } catch {
-          case e: NotFoundException => log.error(s"policy ${p.getName} could not be found, was probably deleted by a previous action")
+          case _: NotFoundException => log.error(s"policy ${p.getName} could not be found, was " +
+            s"probably deleted by a previous action")
         }
       })
     }
@@ -93,7 +95,8 @@ object DeleteHelper {
     def deletePolicies(toDelete: Array[String]) = {
       val allPolicies = adminClient.authorization().policies().policies()
       toDelete.foreach(p => {
-        val notfound = allPolicies.stream().map[String](p2 => p2.getName).noneMatch(p3 => p.equals(p3))
+        val notfound = allPolicies.stream().map[String](p2 => p2.getName).noneMatch(p3 => p
+          .equals(p3))
         notfound match {
           case true => log.warn(s"policy - [${p}] not found!")
           case _ =>
@@ -105,7 +108,8 @@ object DeleteHelper {
         try {
           adminClient.authorization().permissions().scope().findById(p.getId).remove()
         } catch {
-          case e: NotFoundException => log.error(s"policy ${p.getName} could not be found, was probably deleted by a previous action")
+          case e: NotFoundException => log.error(s"policy ${p.getName} could not be found, was " +
+            s"probably deleted by a previous action")
         }
       })
     }
@@ -129,20 +133,25 @@ object DeleteHelper {
     def deleteAllPermissions() = {
 
       adminClient.authorization().policies().policies().forEach(p => {
-        adminClient.authorization().policies().policy(p.getId).dependentPolicies().forEach(dp => {
-          //println(p.getName + " " + dp.getName + " " + dp.getType)
-          if (dp.getType.equals("scope") || dp.getType.equals("resource")) {
-            //this is a permission
-            log.debug(s"Deleting permission ${dp.getName} of type ${dp.getType} .... ")
-            if (dp.getType.equals("scope")) {
-              adminClient.authorization().permissions().scope().findById(dp.getId).remove()
-            } else {
-              adminClient.authorization().permissions().resource().findById(dp.getId).remove()
+        adminClient.authorization().policies().policy(p.getId).dependentPolicies()
+          .forEach(dp => {
+            //println(p.getName + " " + dp.getName + " " + dp.getType)
+            if (dp.getType.equals("scope") || dp.getType.equals("resource")) {
+              //this is a permission
+              log.debug(s"Deleting permission ${dp.getName} of type ${dp.getType} .... ")
+              try {
+                if (dp.getType.equals("scope")) {
+                  adminClient.authorization().permissions().scope().findById(dp.getId).remove()
+                } else {
+                  adminClient.authorization().permissions().resource().findById(dp.getId).remove()
+                }
+              } catch {
+                case _: NotFoundException => log.warn(s"Permission ${dp.getName} with ID - ${dp.getId} couldn't be found")
+              }
+
             }
 
-          }
-
-        })
+          })
       })
     }
 
