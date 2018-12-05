@@ -8,6 +8,11 @@ clientName=identiti-app
 secret=71df4a13-7f58-45be-9f8a-9abac88f97fe
 realm=infinx-demo
 ###################################
+delete-permissions ["*"]
+delete-policies ["*"]
+delete-resources ["*"]
+delete-roles ["*","role_admin"]
+###################################
 #
 # Add roles
 #
@@ -15,13 +20,13 @@ realm=infinx-demo
 #add-role {"name": "role_3","description": "sample description"}
 #add-role {"name": "role_4","description": "sample description for role_4x"}
 ###################################
-###################################
 #
 # Add policies
 #
 ###################################
-add-role-based-policy {"name": "policy_with_role1&4","roles":[{"name":"role_1","required":true},{"name":"role_4","required":false}],"description": "some policy"}
-add-role-based-policy {"name": "policy_with_role2&3","roles":[{"name":"role_2","required":true},{"name":"role_3","required":true}],"description": "some other policy"}
+#add-role-based-policy {"name": "policy_with_role1&4","roles":[{"name":"role_1","required":true},{"name":"role_4","required":false}],"description": "some policy"}
+#add-role-based-policy {"name": "policy_with_role2&3","roles":[{"name":"role_2","required":true},{"name":"role_3","required":true}],"description": "some other policy"}
+#add-agg-policy {"name":"simple_aggregate_policy_1","policies":["policy_with_role1&4","policy_with_role2&3"],"strategy":"consensus"}
 ###################################
 #
 # Add resources

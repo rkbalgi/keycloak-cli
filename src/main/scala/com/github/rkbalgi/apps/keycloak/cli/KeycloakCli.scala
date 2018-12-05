@@ -53,10 +53,10 @@ object KeycloakCli extends App {
 
 
   val realmResource = keycloak.realms().realm(configuration.getRealm);
-  println(realmResource + "** " + configuration.getRealm);
+  println(s" ***** ServerUrl = ${configuration.getAuthServerUrl} \t Realm = ${configuration.getRealm} \t Client = ${configuration.getResource} ***** ");
 
 
-  realmResource.clients().findAll().forEach(println _)
+
   val client = realmResource.clients().findByClientId(configuration.getResource)
   assert(client != null && client.size() == 1);
 
@@ -92,11 +92,27 @@ object KeycloakCli extends App {
       val commandName = cmd.substring(0, cmd.indexOf(" ")) //first space ends the command name and the command itself
       val command = cmd.substring(cmd.indexOf(" ") + 1)
       commandName match {
-        case "add-role-based-policy" =>{
-          KeycloakHelperFunctions.addRoleBasedPolicy(adminClient,command);
+        case "delete-roles" => {
+          DeleteHelper.deleteRoles(realmResource, command);
         }
-        case "add-role" =>{
-          KeycloakHelperFunctions.addRole(realmResource,command);
+        case "delete-resources" => {
+          DeleteHelper.deleteResources(adminClient, command);
+        }
+        case "delete-policies" => {
+          KeycloakHelperFunctions.deletePolicies(adminClient, command);
+        }
+        case "delete-permissions" => {
+          KeycloakHelperFunctions.deletePermissions(adminClient, command);
+        }
+
+        case "add-agg-policy" => {
+          KeycloakHelperFunctions.addAggregatePolicy(adminClient, command);
+        }
+        case "add-role-based-policy" => {
+          KeycloakHelperFunctions.addRoleBasedPolicy(adminClient, command);
+        }
+        case "add-role" => {
+          KeycloakHelperFunctions.addRole(realmResource, command);
         }
         case "add-resource" => {
           KeycloakHelperFunctions.createResource(authzClient, command)

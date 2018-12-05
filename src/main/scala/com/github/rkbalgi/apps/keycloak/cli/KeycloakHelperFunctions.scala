@@ -1,12 +1,13 @@
 package com.github.rkbalgi.apps.keycloak.cli
 
 
+import org.apache.http.HttpStatus
 import org.keycloak.admin.client.resource.{ClientResource, RealmResource}
 import org.keycloak.authorization.client.AuthzClient
 import org.keycloak.representations.idm.RoleRepresentation
 import org.keycloak.representations.idm.authorization._
 import org.slf4j.LoggerFactory
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json._
 
 /**
   *
@@ -108,19 +109,79 @@ object KeycloakHelperFunctions {
 
 
     val policyDef = Json.fromJson[RoleBasedPolicyDef](Json.parse(command)).get
-    log.debug(s"policy definition - ${policyDef}")
+    log.debug(s"Creating policy - ${policyDef.name}")
     policyDef.roles.foreach(println _)
 
-    /*val policyRep = new RolePolicyRepresentation
+    val policyRep = new RolePolicyRepresentation
 
-    policyDef.ro
-    policyRep.addRole("", true)
+    policyRep.setName(policyDef.name)
     policyRep.setLogic(Logic.POSITIVE)
+    policyDef.roles.foreach(r => policyRep.addRole(r.name, r.required))
     //don't know what decision strategy means here - makes sense on a permission
     policyRep.setDecisionStrategy(DecisionStrategy.AFFIRMATIVE)
-    val response=adminClient.authorization().policies().role().create(policyRep);
-    val result=response.readEntity(classOf[RolePolicyRepresentation])
-    log.info(s"Created role based policy - with ID - ${result.getId}");*/
+
+
+    val response = adminClient.authorization().policies().role().create(policyRep)
+    if (response.getStatus == HttpStatus.SC_CREATED) {
+      val result = response.readEntity(classOf[RolePolicyRepresentation])
+      log.info(s"Created role based policy - with ID - ${result.getId}")
+    } else {
+      log.error(s"Failed to create role based policy - Status code ${response.getStatus}")
+    }
+  }
+
+  /** Adds a aggregate policy in keycloak */
+
+  def addAggregatePolicy(adminClient: ClientResource, command: String) = {
+
+    implicit val decisionStrategyReader = new Reads[DecisionStrategy] {
+
+      override def reads(json: JsValue): JsResult[DecisionStrategy] = {
+        val enumVal = json.as[String]
+        return JsSuccess(DecisionStrategy.valueOf(enumVal.toUpperCase()))
+      }
+
+    }
+
+    implicit val reader = Json.reads[AggregatePolicyDef]
+    val policyDef = Json.fromJson[AggregatePolicyDef](Json.parse(command)).get
+
+    val policyRep = new AggregatePolicyRepresentation
+    policyRep.setName(policyDef.name)
+    for (policy <- policyDef.policies) policyRep.addPolicy(policy)
+    policyRep.setDecisionStrategy(policyDef.strategy)
+
+    val response = adminClient.authorization().policies().aggregate().create(policyRep);
+    if (response.getStatus == HttpStatus.SC_CREATED) {
+      val result = response.readEntity(classOf[RolePolicyRepresentation])
+      log.info(s"Created aggregate based policy - ${result.getName} with ID - ${result.getId}");
+    } else {
+      log.error(s"Failed to aggregate role based policy - Status code ${response.getStatus}");
+    }
+
+
+  }
+
+
+  /** Deletes permissions from keycloak. If the command (JSON) contains a array property "name" with the first value "*"
+    * then all permissions are deleted!!, else all the listed permissions are deleted
+    *
+    * */
+  def deletePermissions(adminClient: ClientResource, command: String): Unit = {
+
+    DeleteHelper.deletePermissions(adminClient, command)
+
+  }
+
+  /**
+    * Deletes policies from keycloak - See behaviour here - [[KeycloakHelperFunctions.deletePermissions()]]
+    *
+    * @param adminClient
+    * @param command
+    */
+  def deletePolicies(adminClient: ClientResource, command: String): Unit = {
+
+    DeleteHelper.deletePolicies(adminClient, command)
 
   }
 }

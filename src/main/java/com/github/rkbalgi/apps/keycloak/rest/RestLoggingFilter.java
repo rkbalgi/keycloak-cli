@@ -1,13 +1,10 @@
 package com.github.rkbalgi.apps.keycloak.rest;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientResponseContext;
 import javax.ws.rs.client.ClientResponseFilter;
 import javax.ws.rs.ext.Provider;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.util.encoders.Hex;
 
 /**
  *

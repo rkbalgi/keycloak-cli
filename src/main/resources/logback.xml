@@ -6,6 +6,11 @@
   </appender>
 
   <root level="debug">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </root>
+
+  <logger level="info" name="org.jboss.resteasy">
+    <appender-ref ref="STDOUT"/>
+  </logger>
+
 </configuration>
