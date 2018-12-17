@@ -19,6 +19,7 @@ object DeleteHelper {
 
   def deleteRoles(adminClient: RealmResource, command: String) = {
 
+
     val toDelete = Json.fromJson[Array[String]](Json.parse(command))
     val notDefaultRole: Predicate[_ >: RoleRepresentation] = r => (!r.getName.equals
     ("uma_authorization") && !r.getName.equals("offline_access"))
@@ -131,6 +132,7 @@ object DeleteHelper {
 
   def deletePermissions(adminClient: ClientResource, command: String): Unit = {
     def deleteAllPermissions() = {
+
 
       adminClient.authorization().policies().policies().forEach(p => {
         adminClient.authorization().policies().policy(p.getId).dependentPolicies()

@@ -1,5 +1,6 @@
 package com.github.rkbalgi.apps.keycloak.ui;
 
+import com.github.rkbalgi.apps.keycloak.cli.KeycloakCli;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -20,6 +21,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
+import org.keycloak.authorization.client.Configuration;
+import scala.Tuple3;
 
 /**
  *
@@ -68,18 +71,26 @@ public class KeycloakUI {
         }
         return false;
       });
+
       chooserDialog.show();
 
       Optional<String> selectedFile = Optional.ofNullable(chooserDialog.getFile());
       if (selectedFile.isPresent()) {
         //editorPane = new JEditorPane();
         try {
+          final File cmdFile = new File(chooserDialog.getDirectory(), selectedFile.get());
           String content = new String(
               Files.readAllBytes(
-                  new File(chooserDialog.getDirectory(), selectedFile.get()).toPath()));
+                  cmdFile.toPath()));
+          Tuple3<Configuration, String, String> t3 = KeycloakCli
+              .buildConfig(cmdFile.getAbsolutePath());
+
+          //new EditConfigDialog()
+
+          System.out.println(t3._1().getAuthServerUrl());
+
           editorPane.setText(content);
-          //System.out.println(content);
-          //editorPanel.add(editorPane);
+
         } catch (IOException e1) {
           notificationsTa.append(
               "failed to read selected file - " + selectedFile.get() + " Error = " + e1
@@ -90,6 +101,11 @@ public class KeycloakUI {
 
       }
 
+
+    });
+
+    JMenuItem runFileMi = new JMenuItem("Run File", KeyEvent.VK_R);
+    runFileMi.addActionListener((ev) -> {
 
     });
 
@@ -125,6 +141,7 @@ public class KeycloakUI {
     frame.add(splitPane, BorderLayout.CENTER);
 
     fileMenu.add(openCmdFileMi);
+    fileMenu.add(runFileMi);
     JMenuItem closeAppFileMi = new JMenuItem("Exit", KeyEvent.VK_X);
     closeAppFileMi.addActionListener((e) -> {
       System.exit(0);
