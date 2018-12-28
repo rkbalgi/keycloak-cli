@@ -137,7 +137,7 @@ object DeleteHelper {
       adminClient.authorization().policies().policies().forEach(p => {
         adminClient.authorization().policies().policy(p.getId).dependentPolicies()
           .forEach(dp => {
-            //println(p.getName + " " + dp.getName + " " + dp.getType)
+            println(p.getName + " " + dp.getName + " " + dp.getType)
             if (dp.getType.equals("scope") || dp.getType.equals("resource")) {
               //this is a permission
               log.debug(s"Deleting permission ${dp.getName} of type ${dp.getType} .... ")

@@ -4,10 +4,9 @@ package com.github.rkbalgi.apps.keycloak.cli
 import org.apache.http.HttpStatus
 import org.keycloak.admin.client.resource.{ClientResource, RealmResource}
 import org.keycloak.authorization.client.AuthzClient
-import org.keycloak.representations.idm.RoleRepresentation
 import org.keycloak.representations.idm.authorization._
+import org.keycloak.representations.idm.{CredentialRepresentation, RoleRepresentation, UserRepresentation}
 import org.slf4j.LoggerFactory
-import play.api.libs.json._
 
 /**
   *
@@ -15,11 +14,46 @@ import play.api.libs.json._
   */
 object KeycloakHelperFunctions {
 
-  def addRole(realmResource: RealmResource, command: String): Unit = {
+  private val LOG = LoggerFactory.getLogger("KeycloakHelperFunctions")
 
-    implicit val roleReader = Json.reads[RoleDef]
-    val roleDef = Json.fromJson[RoleDef](Json.parse(command)).get
-    log.debug(s"Creating role -  ${roleDef}")
+
+  def addUser(realmResource: RealmResource, userDef: UserDef): Unit = {
+    import scala.collection.JavaConverters._
+    val userRep = new UserRepresentation
+    userRep.setUsername(userDef.userId)
+    userRep.setEmail(userDef.email)
+    userRep.setFirstName(userDef.firstName)
+    userRep.setLastName(userDef.lastName)
+
+    val creds = new CredentialRepresentation
+    creds.setTemporary(false)
+    creds.setType("secret")
+
+    userRep.setCredentials(List(creds).asJava)
+    userRep.setRealmRoles(userDef.roles.toList.asJava)
+    val response = realmResource.users().create(userRep);
+    if (Option(response).isDefined) {
+      if (response.getStatus == 201) {
+        realmResource.users().search(userDef.userId)
+        var res = realmResource.users().search(userDef.userId)
+        if (res.size() == 1) {
+          LOG.info("User {} created with ID - {}", userDef.userId, (res.get(0).getId).asInstanceOf[Any])
+        } else {
+          LOG.info("Too many matches for {} :/", userDef.userId)
+        }
+
+      } else {
+        LOG.error("Failed to create user - {}, http status code = {}", userDef.userId, response.getStatus);
+      }
+    } else {
+      LOG.error("Failed to create user {}", userDef);
+    }
+
+
+  }
+
+
+  def addRole(realmResource: RealmResource, roleDef: RoleDef): Unit = {
 
 
     val roleRep = new RoleRepresentation
@@ -27,93 +61,70 @@ object KeycloakHelperFunctions {
     roleRep.setDescription(roleDef.description.getOrElse("No description provided"))
     realmResource.roles().create(roleRep)
     val roleId = realmResource.roles().get(roleDef.name).toRepresentation.getId
-    log.info(s"Role ${roleDef.name} created with ID ${roleId}")
+    LOG.info(s"Role ${roleDef.name} created with ID ${roleId}")
 
 
   }
 
 
-  private val log = LoggerFactory.getLogger("KeycloakHelperFunctions")
+  def createResource(authzClient: AuthzClient, command: ResourceDef) = {
 
-  def createResource(authzClient: AuthzClient, command: String) = {
 
-    val jsonObj = Json.parse(command)
+    LOG.debug("Creating resource .. {}", command)
+    assert(command.scopes.length > 0, "1 or more scopes should be provided with add-scopes command")
+    LOG.debug(s"Adding resource - ${command.name}  with scopes - ${command.scopes.mkString}")
 
-    val resourceName = (jsonObj \ "resource_name").get.as[String]
-    val scopes = (jsonObj \ "scopes").get.as[JsArray]
-    assert(scopes.value.length > 0, "1 or more scopes should be provided with add-scopes command")
-    log.debug(s"Adding resource - ${resourceName}  with scopes - ${
-      scopes.value.mkString("[", "," +
-        "", "]")
-    }")
-
-    val resource = Option(authzClient.protection().resource().findByName(resourceName))
+    val resource = Option(authzClient.protection().resource().findByName(command.name))
 
     if (resource.isDefined) {
-      log.error(s"resource ${resourceName} exists and cannot be added");
+      LOG.error(s"resource ${command.name} exists and cannot be added");
       throw new RuntimeException();
     } else {
 
       val newResource = new ResourceRepresentation()
-      newResource.setName(resourceName)
+      newResource.setName(command.name)
 
-      for (scope <- scopes.value) {
-        newResource.addScope(scope.as[String])
+      for (scope <- command.scopes) {
+        newResource.addScope(scope)
       }
       val response = authzClient.protection().resource().create(newResource);
-      log.info(s"Resource ${resourceName} created with ID = ${response.getId}"); // response.getId
+      LOG.info(s"Resource ${command.name} created with ID = ${response.getId}"); // response.getId
 
     }
 
   }
 
-  def addPermission(adminClient: ClientResource, command: String) = {
-
-    val jsObj = Json.parse(command)
-    val permissionName = (jsObj \ "perm_name").get.as[String]
-    val resource = (jsObj \ "resource").get.as[String]
-    val scopes = (jsObj \ "scopes").as[JsArray]
-    val policies = (jsObj \ "policies").as[JsArray]
-
-    val policyStrategy = jsObj \ "policy_strategy"
-    println(permissionName, resource, scopes, policies, policyStrategy.get)
+  def addPermission(adminClient: ClientResource, command: PermissionDef) = {
 
     val newScopePerm = new ScopePermissionRepresentation
     //set policies
-    newScopePerm.setName(permissionName)
+    newScopePerm.setName(command.name)
 
-    for (policy <- policies.value) newScopePerm.addPolicy(policy.as[String])
+    command.policies.foreach(arg => newScopePerm.addPolicy(arg))
+    command.scopes.foreach(arg => newScopePerm.addScope(arg))
 
-    //set scopes
-    for (scope <- scopes.value) newScopePerm.addScope(scope.as[String])
 
-    newScopePerm.setDecisionStrategy(DecisionStrategy.valueOf(policyStrategy.get.as[String]
-      .toUpperCase))
+    newScopePerm.setDecisionStrategy(DecisionStrategy.valueOf(command.strategy.toUpperCase))
     newScopePerm.setLogic(Logic.POSITIVE)
-    newScopePerm.addResource(resource)
+    newScopePerm.addResource(command.resourceName)
 
-    log.debug {
-      s"Adding permission - ${permissionName}"
+    LOG.debug {
+      s"Adding permission - ${command.name}"
     };
 
     val response = adminClient.authorization().permissions().scope().create(newScopePerm).
       readEntity(classOf[ScopePermissionRepresentation])
     if (response != null) {
-      log.debug(s"Permission ${permissionName} created with ID - ${response.getId}")
+      LOG.debug(s"Permission ${command.name} created with ID - ${response.getId}")
     } else {
-      log.error(s"Failed to create permission - ${permissionName}");
+      LOG.error(s"Failed to create permission - ${command.name}");
     }
 
   }
 
-  def addRoleBasedPolicy(adminClient: ClientResource, command: String): Unit = {
+  def addRoleBasedPolicy(adminClient: ClientResource, policyDef: RoleBasedPolicyDef): Unit = {
 
-    implicit val policyRoleReader = Json.reads[PolicyRole]
-    implicit val policyReader = Json.reads[RoleBasedPolicyDef]
-
-
-    val policyDef = Json.fromJson[RoleBasedPolicyDef](Json.parse(command)).get
-    log.debug(s"Creating policy - ${policyDef.name}")
+    LOG.debug(s"Creating policy - ${policyDef.name}")
     policyDef.roles.foreach(println _)
 
     val policyRep = new RolePolicyRepresentation
@@ -128,27 +139,16 @@ object KeycloakHelperFunctions {
     val response = adminClient.authorization().policies().role().create(policyRep)
     if (response.getStatus == HttpStatus.SC_CREATED) {
       val result = response.readEntity(classOf[RolePolicyRepresentation])
-      log.info(s"Created role based policy - with ID - ${result.getId}")
+      LOG.info(s"Created role based policy - with ID - ${result.getId}")
     } else {
-      log.error(s"Failed to create role based policy - Status code ${response.getStatus}")
+      LOG.error(s"Failed to create role based policy - Status code ${response.getStatus}")
     }
   }
 
   /** Adds a aggregate policy in keycloak */
 
-  def addAggregatePolicy(adminClient: ClientResource, command: String) = {
+  def addAggregatePolicy(adminClient: ClientResource, policyDef: AggregatePolicyDef) = {
 
-    implicit val decisionStrategyReader = new Reads[DecisionStrategy] {
-
-      override def reads(json: JsValue): JsResult[DecisionStrategy] = {
-        val enumVal = json.as[String]
-        return JsSuccess(DecisionStrategy.valueOf(enumVal.toUpperCase()))
-      }
-
-    }
-
-    implicit val reader = Json.reads[AggregatePolicyDef]
-    val policyDef = Json.fromJson[AggregatePolicyDef](Json.parse(command)).get
 
     val policyRep = new AggregatePolicyRepresentation
     policyRep.setName(policyDef.name)
@@ -158,9 +158,9 @@ object KeycloakHelperFunctions {
     val response = adminClient.authorization().policies().aggregate().create(policyRep);
     if (response.getStatus == HttpStatus.SC_CREATED) {
       val result = response.readEntity(classOf[RolePolicyRepresentation])
-      log.info(s"Created aggregate based policy - ${result.getName} with ID - ${result.getId}");
+      LOG.info(s"Created aggregate based policy - ${result.getName} with ID - ${result.getId}");
     } else {
-      log.error(s"Failed to aggregate role based policy - Status code ${response.getStatus}");
+      LOG.error(s"Failed to aggregate role based policy - Status code ${response.getStatus}");
     }
 
 

@@ -5,7 +5,9 @@ import com.github.rkbalgi.apps.keycloak.rest.RestLoggingFilter
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder
 import org.keycloak.admin.client.KeycloakBuilder
 import org.keycloak.authorization.client.{AuthzClient, Configuration}
+import org.keycloak.representations.idm.authorization.DecisionStrategy
 import org.slf4j.LoggerFactory
+import play.api.libs.json._
 
 import scala.collection.JavaConverters._
 import scala.io.Source
@@ -19,7 +21,7 @@ object KeycloakCli extends App {
 
 
   private val log = LoggerFactory.getLogger(KeycloakCli.getClass)
-  private val commandDefFile = """C:\Users\Admin\Desktop\om_cmds.cmd""" //def_local.cmd"
+  private val commandDefFile = """C:\Users\Admin\Desktop\om_temp.cmd""" //def_local.cmd"
 
 
   runCommandFile(commandDefFile);
@@ -44,7 +46,7 @@ object KeycloakCli extends App {
       .password(password).resteasyClient(restClient).build();
 
     val realmResource = keycloak.realms().realm(configuration.getRealm);
-    val adminClient = realmResource.clients().get(realmResource.clients().findByClientId(configuration.getResource).get(0).getId)
+    val clientRsrc = realmResource.clients().get(realmResource.clients().findByClientId(configuration.getResource).get(0).getId)
 
 
     println(s" ***** ServerUrl = ${configuration.getAuthServerUrl} \t Realm = ${configuration.getRealm} \t Client = ${configuration.getResource} ***** ");
@@ -77,35 +79,45 @@ object KeycloakCli extends App {
         println(s"processing command .. [${cmd}]")
         val commandName = cmd.substring(0, cmd.indexOf(" ")) //first space ends the command name and the command itself
         val command = cmd.substring(cmd.indexOf(" ") + 1)
+        val commandObj = buildCommand(commandName, command);
         commandName match {
+
+          case "add-user" => {
+            KeycloakHelperFunctions.addUser(realmResource, commandObj.asInstanceOf[UserDef]);
+
+          }
+
           case "delete-roles" => {
             DeleteHelper.deleteRoles(realmResource, command);
           }
           case "delete-resources" => {
-            DeleteHelper.deleteResources(adminClient, command);
+            DeleteHelper.deleteResources(clientRsrc, command);
           }
           case "delete-policies" => {
-            KeycloakHelperFunctions.deletePolicies(adminClient, command);
+            KeycloakHelperFunctions.deletePolicies(clientRsrc, command);
           }
           case "delete-permissions" => {
-            KeycloakHelperFunctions.deletePermissions(adminClient, command);
+            KeycloakHelperFunctions.deletePermissions(clientRsrc, command);
           }
 
           case "add-agg-policy" => {
-            KeycloakHelperFunctions.addAggregatePolicy(adminClient, command);
+            KeycloakHelperFunctions.addAggregatePolicy(clientRsrc, commandObj.asInstanceOf[AggregatePolicyDef]);
           }
           case "add-role-based-policy" => {
-            KeycloakHelperFunctions.addRoleBasedPolicy(adminClient, command);
+            KeycloakHelperFunctions.addRoleBasedPolicy(clientRsrc, commandObj.asInstanceOf[RoleBasedPolicyDef]);
           }
+
+
           case "add-role" => {
-            KeycloakHelperFunctions.addRole(realmResource, command);
+            KeycloakHelperFunctions.addRole(realmResource, commandObj.asInstanceOf[RoleDef])
           }
+
           case "add-resource" => {
-            KeycloakHelperFunctions.createResource(authzClient, command)
+            KeycloakHelperFunctions.createResource(authzClient, commandObj.asInstanceOf[ResourceDef])
           }
 
           case "add-permission" => {
-            KeycloakHelperFunctions.addPermission(adminClient, command);
+            KeycloakHelperFunctions.addPermission(clientRsrc, commandObj.asInstanceOf[PermissionDef]);
 
 
           }
@@ -113,6 +125,93 @@ object KeycloakCli extends App {
 
         }
       })
+  }
+
+
+  def buildCommand(commandName: String, command: String): CmdObj = {
+
+    commandName match {
+
+      case "add-user" => {
+        implicit val userReader = Json.reads[UserDef]
+        Json.fromJson[UserDef](Json.parse(command)).get
+      }
+      case "delete-roles" => {
+        null
+      }
+      case "delete-resources" => {
+        null
+      }
+      case "delete-policies" => {
+        null
+      }
+      case "delete-permissions" => {
+        null
+      }
+
+      case "add-agg-policy" => {
+
+        implicit val decisionStrategyReader = new Reads[DecisionStrategy] {
+
+          override def reads(json: JsValue): JsResult[DecisionStrategy] = {
+            val enumVal = json.as[String]
+            return JsSuccess(DecisionStrategy.valueOf(enumVal.toUpperCase()))
+          }
+
+        }
+        implicit val policyRoleReader = Json.reads[PolicyRole]
+        implicit val reader = Json.reads[AggregatePolicyDef]
+        Json.fromJson[AggregatePolicyDef](Json.parse(command)).get
+
+
+      }
+      case "add-role-based-policy" => {
+        implicit val policyRoleReader = Json.reads[PolicyRole]
+        implicit val policyReader = Json.reads[RoleBasedPolicyDef]
+
+
+        Json.fromJson[RoleBasedPolicyDef](Json.parse(command)).get
+      }
+      case "add-role" => {
+        implicit val roleReader = Json.reads[RoleDef]
+        Json.fromJson[RoleDef](Json.parse(command)).get
+
+      }
+      case "add-resource" => {
+        val jsonObj = Json.parse(command)
+
+        val resourceName = (jsonObj \ "resource_name").get.as[String]
+        val jScopes = (jsonObj \ "scopes").get.as[JsArray]
+        val scopes = new Array[String](jScopes.value.length)
+        var i = 0
+        for (scope <- jScopes.value) {
+          scopes(i) = scope.as[String];
+          i += 1
+        }
+
+        new ResourceDef(resourceName, scopes)
+
+
+      }
+
+      case "add-permission" => {
+
+        val jsObj = Json.parse(command)
+        val permissionName = (jsObj \ "perm_name").get.as[String]
+        val resource = (jsObj \ "resource").get.as[String]
+        val scopes = for (s <- (jsObj \ "scopes").as[JsArray].value) yield s.as[String];
+        val policies = for (s <- (jsObj \ "policies").as[JsArray].value) yield s.as[String];
+
+        new PermissionDef(permissionName, resource, scopes.toList, policies.toList,
+          (Option((jsObj \ "policy_strategy").get.as[String]).getOrElse("AFFIRMATIVE")))
+
+        //val policyStrategy =
+        //println(permissionName, resource, scopes, policies, policyStrategy.get)
+
+
+      }
+    }
+
   }
 
   def buildConfig(commandDefFile: String): (Configuration, String, String) = {

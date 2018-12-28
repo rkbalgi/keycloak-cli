@@ -17,13 +17,13 @@ public class RestLoggingFilter implements ClientResponseFilter {
   public void filter(ClientRequestContext requestContext, ClientResponseContext responseContext)
       throws IOException {
 
-    /*System.out.println(requestContext.getUri().toString());
+/*    System.out.println(requestContext.getUri().toString());
     System.out.println(responseContext.getStatusInfo());
     byte[] response = IOUtils
         .readFully(responseContext.getEntityStream(), responseContext.getLength());
     System.out.println("Response =  .. " + new String(response, "UTF-8"));
-    responseContext.setEntityStream(new ByteArrayInputStream(response));
-    */
+    responseContext.setEntityStream(new ByteArrayInputStream(response));*/
+
 
   }
 }
