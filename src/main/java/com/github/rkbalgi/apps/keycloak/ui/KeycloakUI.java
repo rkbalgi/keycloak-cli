@@ -10,6 +10,7 @@ import java.awt.TextArea;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.util.Optional;
 import javax.swing.JEditorPane;
@@ -17,11 +18,14 @@ import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import org.keycloak.authorization.client.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple3;
 
 /**
@@ -29,21 +33,24 @@ import scala.Tuple3;
  */
 public class KeycloakUI {
 
+  private static final Logger LOG = LoggerFactory.getLogger(KeycloakUI.class);
 
-  private static final String EMPTY = new String(
-      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
+  private static final String EMPTY = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
   private final JFrame frame;
   private JMenuBar menuBar;
   private JMenu fileMenu;
-  private TextArea notificationsTa;
+  private static TextArea notificationsTa = new TextArea(10, 5);
   private JEditorPane editorPane = new JEditorPane("text/plain", EMPTY);
-  //private JPanel editorPanel;
-  private JPanel notificationsPanel;
   private JSplitPane splitPane;
+
+  private Tuple3<Configuration, String, String> t3;
+
+  private Font ST_FONT = new Font("Consolas", Font.PLAIN, 14);
 
   public KeycloakUI() {
     frame = new JFrame("KeycloakUI v0.1");
-    frame.setSize(600, 600);
+    frame.setSize(800, 800);
     initComponents();
 
   }
@@ -53,6 +60,11 @@ public class KeycloakUI {
     SwingUtilities.invokeLater(() -> {
       new KeycloakUI().show();
     });
+
+  }
+
+  public static void log(String msg) {
+    notificationsTa.append(msg + "\n");
 
   }
 
@@ -82,12 +94,13 @@ public class KeycloakUI {
           String content = new String(
               Files.readAllBytes(
                   cmdFile.toPath()));
-          Tuple3<Configuration, String, String> t3 = KeycloakCli
+          t3 = KeycloakCli
               .buildConfig(cmdFile.getAbsolutePath());
 
-          //new EditConfigDialog()
+          final ConfigOptionsDialog dialog = ConfigOptionsDialog.newDialog(this.frame, t3);
 
-          System.out.println(t3._1().getAuthServerUrl());
+          dialog.showDialog();
+          t3 = dialog.getConfig();
 
           editorPane.setText(content);
 
@@ -95,7 +108,7 @@ public class KeycloakUI {
           notificationsTa.append(
               "failed to read selected file - " + selectedFile.get() + " Error = " + e1
                   .getMessage());
-          e1.printStackTrace();
+          LOG.error("", e1);
         }
 
 
@@ -107,28 +120,25 @@ public class KeycloakUI {
     JMenuItem runFileMi = new JMenuItem("Run File", KeyEvent.VK_R);
     runFileMi.addActionListener((ev) -> {
 
-    });
+      try {
+        KeycloakCli.runContent(new StringReader(editorPane.getText()), t3);
+      } catch (Exception e) {
+        LOG.error("Failed to run file ", e);
+        notificationsTa.append(e.getMessage());
+        JOptionPane.showMessageDialog(this.frame, "Error -" + e.getMessage(), "",
+            JOptionPane.ERROR_MESSAGE);
+      }
 
-    JPanel editorPanel = new JPanel();
+    });
 
     //editorPanel.setMinimumSize(new Dimension(400, 400));
     editorPane.setSize(400, Integer.MAX_VALUE);
-    editorPane.setFont(new Font("Consolas", Font.PLAIN, 14));
-    //editorPane.setPreferredSize(new Dimension(400, 400));
-    //editorPane.setMaximumSize(new Dimension(400, 400));
+    editorPane.setFont(this.ST_FONT);
     editorPane.setBackground(Color.CYAN);
-    //editorPanel.add(editorPane);
-    notificationsPanel = new JPanel();
+    JPanel notificationsPanel = new JPanel();
 
-    notificationsTa = new TextArea(80, 5);
+    // = new TextArea(80, 5);
     notificationsTa.setMaximumSize(new Dimension(400, 100));
-    //notificationsPanel.add(new JScrollPane(notificationsTa));
-
-    /*JPanel panel = new JPanel();
-    panel.setLayout(new BorderLayout());
-    panel.add(notificationsPanel, BorderLayout.SOUTH);
-    panel.add(new JScrollPane(editorPanel), BorderLayout.CENTER);
-*/
 
     splitPane = new JSplitPane();
     splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);

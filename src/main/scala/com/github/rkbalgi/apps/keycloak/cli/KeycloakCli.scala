@@ -1,6 +1,9 @@
 package com.github.rkbalgi.apps.keycloak.cli
 
 
+import java.io.{BufferedReader, Reader}
+
+import com.github.rkbalgi.apps.keycloak.events.KuiEventBus
 import com.github.rkbalgi.apps.keycloak.rest.RestLoggingFilter
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder
 import org.keycloak.admin.client.KeycloakBuilder
@@ -21,15 +24,20 @@ object KeycloakCli extends App {
 
 
   private val log = LoggerFactory.getLogger(KeycloakCli.getClass)
-  private val commandDefFile = """C:\Users\Admin\Desktop\om_temp.cmd""" //def_local.cmd"
+  private val commandDefFile = """D:\GitRepos\scripts\keycloak\om\om_iam.kcmd""" //def_local.cmd"
 
 
-  runCommandFile(commandDefFile);
+  //runCommandFile(commandDefFile, buildConfig(commandDefFile));
+
+  def runFile(cmdFile: String, t3: (Configuration, String, String)): Unit = {
+
+    runContent(Source.fromFile(cmdFile).reader(), t3);
+  }
 
 
-  def runCommandFile(commandDefFile: String): Unit = {
+  def runContent(reader: Reader, t3: (Configuration, String, String)): Unit = {
 
-    val t3 = buildConfig(commandDefFile)
+    //val t3 = buildConfig(commandDefFile)
     val configuration = t3._1
     val adminUser = t3._2
     val password = t3._3
@@ -49,7 +57,8 @@ object KeycloakCli extends App {
     val clientRsrc = realmResource.clients().get(realmResource.clients().findByClientId(configuration.getResource).get(0).getId)
 
 
-    println(s" ***** ServerUrl = ${configuration.getAuthServerUrl} \t Realm = ${configuration.getRealm} \t Client = ${configuration.getResource} ***** ");
+    KuiEventBus.event(s" ***** ServerUrl = ${configuration.getAuthServerUrl} \t Realm = ${configuration.getRealm} " +
+      s"\t Client = ${configuration.getResource} \n\t Admin User = ${adminUser} ***** ");
 
 
     val client = realmResource.clients().findByClientId(configuration.getResource)
@@ -58,25 +67,25 @@ object KeycloakCli extends App {
 
     val authzClient = AuthzClient.create(configuration)
 
-    println("Existing resources/permissions and scopes ... \n--------------------------------------------------")
+    KuiEventBus.event("Existing resources/permissions and scopes ... \n--------------------------------------------------")
 
     authzClient.protection().resource().findAll().foreach((r) => {
       val resourceRep = authzClient.protection().resource().findById(r);
       val scopes = for (scope <- resourceRep.getScopes.asScala) yield scope.getName
 
 
-      printf("|%-50s|  with scopes [%s]\n", resourceRep.getName.padTo(50, "#").mkString, scopes.mkString(","))
+      KuiEventBus.event(String.format("|%-50s|  with scopes [%s]\n", resourceRep.getName.padTo(50, "#").mkString, scopes.mkString(",")))
     })
 
     //process commands
     println("Processing commands .. \n--------------------------------------------------")
 
 
-    Source.fromFile(commandDefFile).getLines().filter(_.trim.length > 0)
+    new BufferedReader(reader).lines().filter(_.trim.length > 0)
       .filter(!_.startsWith("#"))
       .filter(!_.contains("="))
-      .foreach(cmd => {
-        println(s"processing command .. [${cmd}]")
+      .forEach(cmd => {
+        KuiEventBus.event(s"processing command .. [${cmd}]")
         val commandName = cmd.substring(0, cmd.indexOf(" ")) //first space ends the command name and the command itself
         val command = cmd.substring(cmd.indexOf(" ") + 1)
         val commandObj = buildCommand(commandName, command);

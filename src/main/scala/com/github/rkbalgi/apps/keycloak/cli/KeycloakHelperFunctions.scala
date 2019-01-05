@@ -1,6 +1,7 @@
 package com.github.rkbalgi.apps.keycloak.cli
 
 
+import com.github.rkbalgi.apps.keycloak.events.KuiEventBus
 import org.apache.http.HttpStatus
 import org.keycloak.admin.client.resource.{ClientResource, RealmResource}
 import org.keycloak.authorization.client.AuthzClient
@@ -37,6 +38,8 @@ object KeycloakHelperFunctions {
         realmResource.users().search(userDef.userId)
         var res = realmResource.users().search(userDef.userId)
         if (res.size() == 1) {
+
+          KuiEventBus.event(s"User created - ${userDef.userId} with id - ${(res.get(0).getId).asInstanceOf[Any]}");
           LOG.info("User {} created with ID - {}", userDef.userId, (res.get(0).getId).asInstanceOf[Any])
         } else {
           LOG.info("Too many matches for {} :/", userDef.userId)
@@ -61,6 +64,7 @@ object KeycloakHelperFunctions {
     roleRep.setDescription(roleDef.description.getOrElse("No description provided"))
     realmResource.roles().create(roleRep)
     val roleId = realmResource.roles().get(roleDef.name).toRepresentation.getId
+    KuiEventBus.event(s"Role created - ${roleDef.name} with id - ${roleId}");
     LOG.info(s"Role ${roleDef.name} created with ID ${roleId}")
 
 
@@ -88,6 +92,7 @@ object KeycloakHelperFunctions {
         newResource.addScope(scope)
       }
       val response = authzClient.protection().resource().create(newResource);
+      KuiEventBus.event(s"Resource created - ${command.name} with id - ${response.getId}");
       LOG.info(s"Resource ${command.name} created with ID = ${response.getId}"); // response.getId
 
     }
@@ -115,8 +120,10 @@ object KeycloakHelperFunctions {
     val response = adminClient.authorization().permissions().scope().create(newScopePerm).
       readEntity(classOf[ScopePermissionRepresentation])
     if (response != null) {
+      KuiEventBus.event(s"Permission created - ${command.name} with id - ${response.getId}");
       LOG.debug(s"Permission ${command.name} created with ID - ${response.getId}")
     } else {
+      KuiEventBus.event(s"Failed to create permission - ${command.name}");
       LOG.error(s"Failed to create permission - ${command.name}");
     }
 
@@ -139,8 +146,10 @@ object KeycloakHelperFunctions {
     val response = adminClient.authorization().policies().role().create(policyRep)
     if (response.getStatus == HttpStatus.SC_CREATED) {
       val result = response.readEntity(classOf[RolePolicyRepresentation])
+      KuiEventBus.event(s"Created role based policy - with ID - ${result.getId}");
       LOG.info(s"Created role based policy - with ID - ${result.getId}")
     } else {
+      KuiEventBus.event(s"Failed to create role based policy - ${policyDef.name}");
       LOG.error(s"Failed to create role based policy - Status code ${response.getStatus}")
     }
   }
@@ -158,8 +167,10 @@ object KeycloakHelperFunctions {
     val response = adminClient.authorization().policies().aggregate().create(policyRep);
     if (response.getStatus == HttpStatus.SC_CREATED) {
       val result = response.readEntity(classOf[RolePolicyRepresentation])
-      LOG.info(s"Created aggregate based policy - ${result.getName} with ID - ${result.getId}");
+      KuiEventBus.event(s"Created aggregate policy - ${policyDef.name} with ID - ${result.getId}");
+      LOG.info(s"Created aggregate based policy - ${result.getName} with ID - ${result.getId}")
     } else {
+      KuiEventBus.event(s"Failed to create aggregate policy - ${policyDef.name}");
       LOG.error(s"Failed to aggregate role based policy - Status code ${response.getStatus}");
     }
 
