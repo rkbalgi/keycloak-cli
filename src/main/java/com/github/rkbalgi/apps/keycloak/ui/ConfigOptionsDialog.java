@@ -41,8 +41,9 @@ public class ConfigOptionsDialog extends JDialog {
     ConfigOptionsDialog instance = new ConfigOptionsDialog(frame, config);
     instance.initComponents();
     instance.setModal(true);
-    instance.setLocationRelativeTo(frame);
+
     instance.setSize(600, 400);
+    instance.setLocationRelativeTo(frame);
     instance.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     return instance;
 

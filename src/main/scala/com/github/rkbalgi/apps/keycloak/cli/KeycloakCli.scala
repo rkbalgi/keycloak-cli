@@ -223,15 +223,15 @@ object KeycloakCli extends App {
 
   }
 
-  def buildConfig(commandDefFile: String): (Configuration, String, String) = {
+  def buildConfig(content: String): (Configuration, String, String) = {
     //process configuration
     val configuration = new Configuration
     var adminUser: String = ""
     var password: String = ""
 
-    println(s"Reading from file - ${commandDefFile}")
+    println(s"Reading from file - ${content}")
 
-    Source.fromFile(commandDefFile).getLines().filter(!_.startsWith("#")).filter(_.contains("="))
+    Source.fromString(content).getLines().filter(!_.startsWith("#")).filter(_.contains("="))
       .map(prop => {
         val parts = prop.split("=")
         (parts(0), parts(1))

@@ -94,14 +94,6 @@ public class KeycloakUI {
           String content = new String(
               Files.readAllBytes(
                   cmdFile.toPath()));
-          t3 = KeycloakCli
-              .buildConfig(cmdFile.getAbsolutePath());
-
-          final ConfigOptionsDialog dialog = ConfigOptionsDialog.newDialog(this.frame, t3);
-
-          dialog.showDialog();
-          t3 = dialog.getConfig();
-
           editorPane.setText(content);
 
         } catch (IOException e1) {
@@ -121,7 +113,9 @@ public class KeycloakUI {
     runFileMi.addActionListener((ev) -> {
 
       try {
+        loadAndOverrideConfig();
         KeycloakCli.runContent(new StringReader(editorPane.getText()), t3);
+        JOptionPane.showMessageDialog(frame, "Done.", "", JOptionPane.INFORMATION_MESSAGE);
       } catch (Exception e) {
         LOG.error("Failed to run file ", e);
         notificationsTa.append(e.getMessage());
@@ -161,6 +155,19 @@ public class KeycloakUI {
     menuBar.add(fileMenu);
     frame.setJMenuBar(menuBar);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+  }
+
+  private void loadAndOverrideConfig() {
+
+    t3 = KeycloakCli
+        .buildConfig(editorPane.getText());
+
+    final ConfigOptionsDialog dialog = ConfigOptionsDialog.newDialog(this.frame, t3);
+
+    dialog.showDialog();
+    t3 = dialog.getConfig();
+
 
   }
 

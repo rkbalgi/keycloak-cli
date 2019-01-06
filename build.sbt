@@ -1,6 +1,14 @@
-name := "KeycloakUI"
-version := "0.1"
-scalaVersion := "2.12.7"
+
+lazy val commonSettings = Seq(
+  name := "KeycloakUI",
+  version := "0.1",
+  scalaVersion := "2.12.7")
+
+lazy val app = (project in file("."))
+  .settings(commonSettings: _*)
+  .settings(
+    mainClass in assembly := Some("com.github.rkbalgi.apps.keycloak.ui.KeycloakUI")
+  )
 
 //resolvers+=Resolver.typesafeIvyRepo("releases")
 resolvers += "Local Maven Repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository"
@@ -30,7 +38,7 @@ libraryDependencies += "org.jboss.resteasy" % "resteasy-jaxrs" % "3.6.1.SP2"
 libraryDependencies += "org.keycloak" % "keycloak-authz-client" % "4.5.0.Final"
 libraryDependencies += "org.keycloak" % "keycloak-admin-client" % "4.5.0.Final"
 libraryDependencies += "com.google.guava" % "guava" % "26.0-jre"
-libraryDependencies += "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1"
+//libraryDependencies += "javax.ws.rs" % "javax.ws.rs-api" % "2.0.1"
 libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.2"
 libraryDependencies += "org.jboss.resteasy" % "resteasy-client" % "3.6.1.SP2"
 libraryDependencies += "org.jboss.resteasy" % "resteasy-jackson2-provider" % "3.6.1.SP2"
