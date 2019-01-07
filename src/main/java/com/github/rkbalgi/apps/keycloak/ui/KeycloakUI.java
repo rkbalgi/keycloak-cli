@@ -12,6 +12,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
@@ -19,7 +22,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
@@ -37,6 +39,8 @@ public class KeycloakUI {
 
 
   private static final String EMPTY = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+  private static final String APPLICATION_NAME = "KeycloakUI";
+  private static final String APPL_VERSION = "v0.1";
   private final JFrame frame;
   private JMenuBar menuBar;
   private JMenu fileMenu;
@@ -49,13 +53,44 @@ public class KeycloakUI {
   private Font ST_FONT = new Font("Consolas", Font.PLAIN, 14);
 
   public KeycloakUI() {
-    frame = new JFrame("KeycloakUI v0.1");
+    frame = new JFrame(String.format("%s %s", APPLICATION_NAME, APPL_VERSION));
     frame.setSize(800, 800);
     initComponents();
 
   }
 
   public static void main(String[] args) {
+
+    final List<String> argList = Arrays.asList(args);
+    if (argList.contains("--file")) {
+      int i = argList.indexOf("--file");
+      if (i + 1 < args.length) {
+        File script = new File(argList.get(i + 1));
+        if (script.exists()) {
+          if (script.isFile()) {
+            try {
+              KeycloakCli.runFile(script);
+              System.out.println("script executed without errors.");
+              return;
+            } catch (Throwable e) {
+              e.printStackTrace();
+              System.exit(3);
+            }
+          } else {
+            System.err.println("--file argument should be a regular file");
+            System.exit(2);
+          }
+        } else {
+          System.err.println("Invalid or non-existent file - " + script.getName());
+          System.exit(2);
+        }
+      } else {
+        System.err.println(
+            "--file parameter requires a file argument (Example: --file /tmp/scripts/file.kcmd) ");
+        System.exit(1);
+      }
+
+    }
 
     SwingUtilities.invokeLater(() -> {
       new KeycloakUI().show();
@@ -73,6 +108,7 @@ public class KeycloakUI {
     menuBar = new JMenuBar();
     fileMenu = new JMenu("File");
     fileMenu.setMnemonic(KeyEvent.VK_F);
+
     JMenuItem openCmdFileMi = new JMenuItem("Open File", KeyEvent.VK_O);
     openCmdFileMi.addActionListener((e) -> {
       FileDialog chooserDialog = new FileDialog(this.frame, "Open File");
@@ -128,11 +164,12 @@ public class KeycloakUI {
     //editorPanel.setMinimumSize(new Dimension(400, 400));
     editorPane.setSize(400, Integer.MAX_VALUE);
     editorPane.setFont(this.ST_FONT);
-    editorPane.setBackground(Color.CYAN);
-    JPanel notificationsPanel = new JPanel();
+    editorPane.setBackground(Color.BLACK);
+    editorPane.setForeground(Color.YELLOW);
 
     // = new TextArea(80, 5);
     notificationsTa.setMaximumSize(new Dimension(400, 100));
+    notificationsTa.setFont(ST_FONT);
 
     splitPane = new JSplitPane();
     splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
@@ -172,6 +209,9 @@ public class KeycloakUI {
   }
 
   public void show() {
+    log(String
+        .format("[%s]  -- %s: %s started. ", LocalDateTime.now(), APPLICATION_NAME, APPL_VERSION));
+    frame.setLocationRelativeTo(null);
     frame.setVisible(true);
   }
 

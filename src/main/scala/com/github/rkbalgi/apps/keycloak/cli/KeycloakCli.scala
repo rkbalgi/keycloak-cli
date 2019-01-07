@@ -1,7 +1,7 @@
 package com.github.rkbalgi.apps.keycloak.cli
 
 
-import java.io.{BufferedReader, Reader}
+import java.io.{BufferedReader, File, Reader}
 
 import com.github.rkbalgi.apps.keycloak.events.KuiEventBus
 import com.github.rkbalgi.apps.keycloak.rest.RestLoggingFilter
@@ -34,6 +34,11 @@ object KeycloakCli extends App {
     runContent(Source.fromFile(cmdFile).reader(), t3);
   }
 
+  def runFile(cmdFile: File): Unit = {
+
+    val content = Source.fromFile(cmdFile).mkString
+    runContent(Source.fromFile(cmdFile).reader(), buildConfig(content));
+  }
 
   def runContent(reader: Reader, t3: (Configuration, String, String)): Unit = {
 
