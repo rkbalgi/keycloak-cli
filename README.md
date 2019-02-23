@@ -52,7 +52,7 @@ add-resource {"resource_name" :"doc", "scopes":["view","edit"]}
 ####################################
 # This section lists down permissions applicable to each resource
 ##
-# "case" resource permissions
+# "doc" resource permissions
 add-permission {"perm_name":"perm_doc_edit","resource":"doc","scopes":["edit"],"policies":["policy_admin_role"],"policy_strategy":"affirmative"}
 add-permission {"perm_name":"perm_doc_view","resource":"doc","scopes":["view"],"policies":["policy_any_role"],"policy_strategy":"unanimous"}
 
