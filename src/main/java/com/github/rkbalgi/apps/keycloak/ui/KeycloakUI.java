@@ -56,7 +56,7 @@ public class KeycloakUI {
 
   public KeycloakUI() {
     frame = new JFrame(String.format("%s %s", APPLICATION_NAME, APPL_VERSION));
-    frame.setSize(800, 800);
+    frame.setSize(1000, 800);
     initComponents();
 
   }
