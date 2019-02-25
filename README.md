@@ -9,7 +9,7 @@ Here's an example of the script containing the commands -
 authServerUrl=http://localhost:8080/auth
 clientName=identiti-app
 secret=71df4a13-7f58-45be-9f8a-9abac88f97fe
-realm=infinx-demo
+realm=demo
 admin_user=admin_user
 password=password
 #
