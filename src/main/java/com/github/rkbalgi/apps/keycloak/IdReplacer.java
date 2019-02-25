@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
 import scala.Tuple2;
@@ -27,9 +28,10 @@ public class IdReplacer {
   }
 
 
-  public void replace(File file, String realmName) throws IOException {
+  public String replace(File file, String realmName) throws IOException {
 
-    final String opFileName = realmName + "_1.json";
+    final String opFileName =
+        realmName + "_" + LocalDateTime.now().toString().replace(":", "_") + ".json ";
 
     final ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.setDefaultPrettyPrinter(new DefaultPrettyPrinter());
@@ -47,6 +49,8 @@ public class IdReplacer {
 
     objectMapper.writer().with(new DefaultPrettyPrinter())
         .writeValue(new File(file.getParent(), opFileName), rootNode);
+
+    return opFileName;
 
   }
 

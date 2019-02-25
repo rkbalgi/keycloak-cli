@@ -1,7 +1,7 @@
 
 lazy val commonSettings = Seq(
   name := "KeycloakUI",
-  version := "0.1",
+  version := "0.2",
   scalaVersion := "2.12.7")
 
 lazy val app = (project in file("."))

@@ -1,5 +1,6 @@
 package com.github.rkbalgi.apps.keycloak.ui;
 
+import com.github.rkbalgi.apps.keycloak.IdReplacer;
 import com.github.rkbalgi.apps.keycloak.cli.KeycloakCli;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -40,7 +42,7 @@ public class KeycloakUI {
 
   private static final String EMPTY = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
   private static final String APPLICATION_NAME = "KeycloakUI";
-  private static final String APPL_VERSION = "v0.1";
+  private static final String APPL_VERSION = "v0.2";
   private final JFrame frame;
   private JMenuBar menuBar;
   private JMenu fileMenu;
@@ -161,6 +163,34 @@ public class KeycloakUI {
 
     });
 
+    JMenuItem cloneRealmMi = new JMenuItem("Clone Realm", KeyEvent.VK_C);
+    cloneRealmMi.addActionListener((ev) -> {
+
+      try {
+
+        JFileChooser dialog = new JFileChooser();
+        dialog.showOpenDialog(frame);
+        File exportFile = dialog.getSelectedFile();
+        if (exportFile != null && exportFile.exists()) {
+
+          String newRealmName = JOptionPane
+              .showInputDialog(frame, "New Realm Name",
+                  "new-realm-??" + LocalDateTime.now().toString());
+
+          String opFileName = new IdReplacer().replace(exportFile, newRealmName);
+
+          JOptionPane.showMessageDialog(frame, "Done. New file = " + opFileName, "Info",
+              JOptionPane.INFORMATION_MESSAGE);
+        }
+      } catch (Exception e) {
+        LOG.error("Failed to clone realm ", e);
+        notificationsTa.append(e.getMessage());
+        JOptionPane.showMessageDialog(this.frame, "Error -" + e.getMessage(), "",
+            JOptionPane.ERROR_MESSAGE);
+      }
+
+    });
+
     //editorPanel.setMinimumSize(new Dimension(400, 400));
     editorPane.setSize(400, Integer.MAX_VALUE);
     editorPane.setFont(this.ST_FONT);
@@ -183,6 +213,7 @@ public class KeycloakUI {
 
     fileMenu.add(openCmdFileMi);
     fileMenu.add(runFileMi);
+    fileMenu.add(cloneRealmMi);
     JMenuItem closeAppFileMi = new JMenuItem("Exit", KeyEvent.VK_X);
     closeAppFileMi.addActionListener((e) -> {
       System.exit(0);
